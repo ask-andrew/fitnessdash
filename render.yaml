@@ -2,8 +2,7 @@ services:
   - type: web
     name: strava-statistics
     env: docker
-    dockerfilePath: docker/app/Dockerfile
-    dockerContext: .
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: STRAVA_CLIENT_ID
         value: 164617
