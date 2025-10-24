@@ -41,7 +41,6 @@ COPY default.conf /etc/nginx/conf.d/default.conf
 
 # Configure PHP-FPM
 ENV PHP_INI_DIR="/etc/php84"
-RUN ln -s /usr/bin/php84 /usr/bin/php
 COPY fpm-pool.conf ${PHP_INI_DIR}/php-fpm.d/www.conf
 COPY php.ini ${PHP_INI_DIR}/conf.d/custom.ini
 
