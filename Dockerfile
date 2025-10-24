@@ -48,7 +48,7 @@ COPY root /
 # Add application
 COPY . /var/www/
 
-# Create build directories with proper permissions
+# Create build directories with proper permissions (after copying app)
 RUN mkdir -p /var/www/build/html /var/www/build/cache
 RUN mkdir -p /var/www/storage/database /var/www/storage/files
 RUN mkdir -p /var/www/var/cache/dev /var/www/var/log
