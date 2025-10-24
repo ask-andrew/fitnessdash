@@ -17,7 +17,9 @@ RUN apk add --no-cache \
   php84-fileinfo \
   php84-fpm \
   php84-gd \
+  php84-iconv \
   php84-intl \
+  php84-libxml \
   php84-mbstring \
   php84-opcache \
   php84-openssl \
