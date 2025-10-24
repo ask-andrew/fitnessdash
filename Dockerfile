@@ -48,7 +48,14 @@ COPY root /
 # Add application
 COPY . /var/www/
 
-# Keep uid/gid same as pre-lsio for backwards compatibility
+# Create build directories with proper permissions
+RUN mkdir -p /var/www/build/html /var/www/build/cache
+RUN mkdir -p /var/www/storage/database /var/www/storage/files
+RUN mkdir -p /var/www/var/cache/dev /var/www/var/log
+RUN chown -R abc:abc /var/www/build /var/www/storage /var/www/var
+RUN chmod -R 755 /var/www/build
+RUN chmod -R 755 /var/www/storage
+RUN chmod -R 755 /var/www/var
 ENV PUID=65534
 ENV PGID=100
 
