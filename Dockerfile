@@ -48,6 +48,9 @@ COPY root /
 # Add application
 COPY . /var/www/
 
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader --no-scripts
+
 # Create build directories with proper permissions (after copying app)
 RUN mkdir -p /var/www/build/html /var/www/build/cache
 RUN mkdir -p /var/www/storage/database /var/www/storage/files
