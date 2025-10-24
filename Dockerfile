@@ -50,7 +50,7 @@ COPY root /
 COPY . /var/www/
 
 # Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-scripts
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction || (echo "Composer install failed" && cat /var/www/composer.json && exit 1)
 
 # Create build directories with proper permissions (after copying app)
 RUN mkdir -p /var/www/build/html /var/www/build/cache
