@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: strava-statistics
+    env: docker
+    dockerfilePath: docker/app/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: STRAVA_CLIENT_ID
+        value: 164617
+      - key: STRAVA_CLIENT_SECRET
+        value: c75bec18abc6c96f673c7951dab7441fa4f463f9
+      - key: STRAVA_REFRESH_TOKEN
+        value: 84c6461d884f7f666a3e6b0d79c2d758afe2860a
+      - key: TZ
+        value: Etc/GMT
