@@ -1,0 +1,10 @@
+{
+  "build": {
+    "builder": "dockerfile"
+  },
+  "deploy": {
+    "startCommand": "docker run -p 8080:8080 robiningelbrecht/strava-statistics:latest",
+    "healthcheckPath": "/",
+    "healthcheckTimeout": 100
+  }
+}
