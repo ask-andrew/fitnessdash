@@ -6,6 +6,7 @@ WORKDIR /var/www
 # Install packages and remove default server definition
 RUN apk add --no-cache \
   bash \
+  composer \
   curl \
   nginx \
   php84 \
