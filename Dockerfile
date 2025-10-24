@@ -1,9 +1,7 @@
 FROM ghcr.io/linuxserver/baseimage-alpine:3.21
 
-# Setup document root
 WORKDIR /var/www
 
-# Install packages and remove default server definition
 RUN apk add --no-cache \
   bash \
   composer \
@@ -34,9 +32,8 @@ RUN apk add --no-cache \
   php83-zip \
   php83-pcntl
 
-# Configure nginx - http
+# Configure nginx
 COPY nginx.conf /etc/nginx/nginx.conf
-# Configure nginx - default server
 COPY default.conf /etc/nginx/conf.d/default.conf
 
 # Configure PHP-FPM
@@ -47,27 +44,32 @@ COPY php.ini ${PHP_INI_DIR}/conf.d/custom.ini
 
 COPY root /
 
-# Add application
+# Copy composer files first for build caching
+COPY composer.json composer.lock /var/www/
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
+
+# Copy app
 COPY . /var/www/
 
-# Install PHP dependencies
+# Verify extensions
 RUN set -e && \
-    php -m | grep -E "bcmath|ctype|fileinfo|xml|simplexml|dom|pcntl" && \
-    composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
+  required_exts="bcmath ctype fileinfo xml simplexml dom pcntl pdo pdo_sqlite intl mbstring" && \
+  for ext in $required_exts; do \
+    php -m | grep -q "$ext" || (echo "Missing PHP extension: $ext" && exit 1); \
+  done
 
-# Create build directories with proper permissions (after copying app)
-RUN mkdir -p /var/www/build/html /var/www/build/cache
-RUN mkdir -p /var/www/storage/database /var/www/storage/files
-RUN mkdir -p /var/www/var/cache/dev /var/www/var/log
-RUN chown -R abc:abc /var/www/build /var/www/storage /var/www/var
-RUN chmod -R 755 /var/www/build
-RUN chmod -R 755 /var/www/storage
-RUN chmod -R 755 /var/www/var
+# Create build directories
+RUN mkdir -p /var/www/build/html /var/www/build/cache \
+    /var/www/storage/database /var/www/storage/files \
+    /var/www/var/cache/dev /var/www/var/log && \
+    chown -R abc:abc /var/www/build /var/www/storage /var/www/var && \
+    chmod -R 755 /var/www/build /var/www/storage /var/www/var
+
 ENV PUID=65534
 ENV PGID=100
 
-# Expose the port nginx is reachable on
+USER abc
+
 EXPOSE 8080
 
-# Configure a healthcheck to validate that everything is up&running
 HEALTHCHECK --timeout=10s CMD curl --silent --fail http://127.0.0.1:8080/fpm-ping || exit 1
