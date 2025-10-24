@@ -20,7 +20,7 @@ public/assets/images/readme
 .php-cs-fixer.dist.php
 .phpunit.result.cache
 docker-compose.yml
-docker
+docker/
 gear-maintenance.example.yml
 Makefile
 min-coverage-rules.php
