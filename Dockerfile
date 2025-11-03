@@ -13,6 +13,7 @@ RUN apk add --no-cache \
     libzip-dev \
     libxml2-dev \
     icu-dev \
+    icu-libs \
     oniguruma-dev \
     postgresql-dev \
     sqlite-dev \
@@ -26,33 +27,42 @@ RUN apk add --no-cache \
     openssl-dev \
     pkgconfig \
     libtool \
+    gnu-libiconv \
     $PHPIZE_DEPS
 
-# Install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp --with-xpm && \
-    docker-php-ext-install -j$(nproc) \
-        bcmath \
-        ctype \
-        curl \
-        dom \
-        fileinfo \
-        gd \
-        iconv \
-        intl \
-        mbstring \
-        opcache \
-        pdo \
-        pdo_mysql \
-        pdo_pgsql \
-        pdo_sqlite \
-        pcntl \
-        session \
-        simplexml \
-        tokenizer \
-        xml \
-        xmlreader \
-        xmlwriter \
-        zip
+# Set environment variables for iconv
+ENV LD_PRELOAD=/usr/lib/preloadable_libiconv.so
+
+# Install PHP extensions one by one to isolate issues
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp --with-xpm
+
+# Install extensions in separate RUN commands to isolate any failures
+RUN docker-php-ext-install -j$(nproc) bcmath
+RUN docker-php-ext-install -j$(nproc) ctype
+RUN docker-php-ext-install -j$(nproc) curl
+RUN docker-php-ext-install -j$(nproc) dom
+RUN docker-php-ext-install -j$(nproc) fileinfo
+RUN docker-php-ext-install -j$(nproc) gd
+RUN docker-php-ext-install -j$(nproc) intl
+RUN docker-php-ext-install -j$(nproc) mbstring
+RUN docker-php-ext-install -j$(nproc) opcache
+RUN docker-php-ext-install -j$(nproc) pdo
+RUN docker-php-ext-install -j$(nproc) pdo_mysql
+RUN docker-php-ext-install -j$(nproc) pdo_pgsql
+RUN docker-php-ext-install -j$(nproc) pdo_sqlite
+RUN docker-php-ext-install -j$(nproc) pcntl
+RUN docker-php-ext-install -j$(nproc) session
+RUN docker-php-ext-install -j$(nproc) simplexml
+RUN docker-php-ext-install -j$(nproc) tokenizer
+RUN docker-php-ext-install -j$(nproc) xml
+RUN docker-php-ext-install -j$(nproc) xmlreader
+RUN docker-php-ext-install -j$(nproc) xmlwriter
+RUN docker-php-ext-install -j$(nproc) zip
+
+# Install iconv separately with specific flags
+RUN apk add --no-cache gnu-libiconv
+ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so
+RUN docker-php-ext-install -j$(nproc) iconv
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
