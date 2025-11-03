@@ -53,7 +53,6 @@ RUN docker-php-ext-install -j$(nproc) pdo_sqlite
 RUN docker-php-ext-install -j$(nproc) pcntl
 RUN docker-php-ext-install -j$(nproc) session
 RUN docker-php-ext-install -j$(nproc) simplexml
-RUN docker-php-ext-install -j$(nproc) tokenizer
 RUN docker-php-ext-install -j$(nproc) xml
 RUN docker-php-ext-install -j$(nproc) xmlreader
 RUN docker-php-ext-install -j$(nproc) xmlwriter
@@ -74,6 +73,10 @@ COPY default.conf /etc/nginx/conf.d/default.conf
 # Configure PHP-FPM
 COPY fpm-pool.conf /usr/local/etc/php-fpm.d/zzz-www.conf
 COPY php.ini /usr/local/etc/php/conf.d/custom.ini
+
+# Set up supervisor
+RUN mkdir -p /etc/supervisor/conf.d
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Set working directory
 WORKDIR /var/www
@@ -100,7 +103,7 @@ COPY . /var/www/
 
 # Set proper permissions
 RUN mkdir -p /var/www/var/cache /var/www/var/logs /var/www/var/sessions \
-    && chown -R www-data:www-data /var/www/var
+    && chown -R nginx:nginx /var/www/var
 
 # Verify extensions
 RUN set -e && \
@@ -111,18 +114,13 @@ RUN set -e && \
 
 # Create necessary directories
 RUN mkdir -p /var/www/var/cache/prod /var/www/var/logs /var/www/var/sessions \
-    && chown -R www-data:www-data /var/www/var
+    && chown -R nginx:nginx /var/www/var
 
-# Expose port 80
-EXPOSE 80
+# Expose http port (Render expects 10000 for Docker images)
+EXPOSE 10000
 
-# Start Nginx and PHP-FPM
-CMD ["nginx", "-g", "daemon off;"]
+# Healthcheck via php-fpm ping
+HEALTHCHECK --timeout=10s CMD curl --silent --fail http://127.0.0.1:10000/fpm-ping || exit 1
 
-ENV PUID=65534
-ENV PGID=100
-
-USER abc
-EXPOSE 8080
-
-HEALTHCHECK --timeout=10s CMD curl --silent --fail http://127.0.0.1:8080/fpm-ping || exit 1
+# Start Nginx and PHP-FPM using supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
