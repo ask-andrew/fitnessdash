@@ -21,7 +21,12 @@ RUN apk add --no-cache \
     libwebp-dev \
     libxpm-dev \
     zlib-dev \
-    libzip-dev
+    libzip-dev \
+    curl-dev \
+    openssl-dev \
+    pkgconfig \
+    libtool \
+    $PHPIZE_DEPS
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp --with-xpm && \
