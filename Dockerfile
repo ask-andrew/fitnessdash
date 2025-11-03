@@ -60,13 +60,12 @@ COPY default.conf /etc/nginx/conf.d/default.conf
 COPY fpm-pool.conf /usr/local/etc/php-fpm.d/zzz-www.conf
 COPY php.ini /usr/local/etc/php/conf.d/custom.ini
 
-# Set up supervisor
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
 # Set working directory
 WORKDIR /var/www
 
-COPY root /
+# Copy root files if they exist
+COPY root/ /tmp/root/
+RUN if [ -d /tmp/root ]; then cp -r /tmp/root/* /; fi
 
 # Copy composer files first for build caching
 COPY composer.json composer.lock /var/www/
@@ -85,7 +84,8 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interactio
 COPY . /var/www/
 
 # Set proper permissions
-RUN chown -R www-data:www-data /var/www/var
+RUN mkdir -p /var/www/var/cache /var/www/var/logs /var/www/var/sessions \
+    && chown -R www-data:www-data /var/www/var
 
 # Verify extensions
 RUN set -e && \
@@ -94,18 +94,20 @@ RUN set -e && \
     php -m | grep -q "$ext" || (echo "Missing PHP extension: $ext" && exit 1); \
   done
 
-# Create build directories
-RUN mkdir -p /var/www/build/html /var/www/build/cache \
-    /var/www/storage/database /var/www/storage/files \
-    /var/www/var/cache/dev /var/www/var/log && \
-    chown -R abc:abc /var/www/build /var/www/storage /var/www/var && \
-    chmod -R 755 /var/www/build /var/www/storage /var/www/var
+# Create necessary directories
+RUN mkdir -p /var/www/var/cache/prod /var/www/var/logs /var/www/var/sessions \
+    && chown -R www-data:www-data /var/www/var
+
+# Expose port 80
+EXPOSE 80
+
+# Start Nginx and PHP-FPM
+CMD ["nginx", "-g", "daemon off;"]
 
 ENV PUID=65534
 ENV PGID=100
 
 USER abc
-
 EXPOSE 8080
 
 HEALTHCHECK --timeout=10s CMD curl --silent --fail http://127.0.0.1:8080/fpm-ping || exit 1
