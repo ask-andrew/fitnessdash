@@ -1,55 +1,91 @@
-FROM ghcr.io/linuxserver/baseimage-alpine:3.21
+# Use official PHP 8.3 image with FPM
+FROM php:8.3-fpm-alpine
 
 WORKDIR /var/www
 
+# Install system dependencies
 RUN apk add --no-cache \
-  bash \
-  composer \
-  curl \
-  nginx \
-  php84 \
-  php84-bcmath \
-  php84-ctype \
-  php84-curl \
-  php84-dom \
-  php84-fileinfo \
-  php84-fpm \
-  php84-gd \
-  php84-iconv \
-  php84-intl \
-  php84-mbstring \
-  php84-opcache \
-  php84-openssl \
-  php84-pdo \
-  php84-pdo_sqlite \
-  php84-phar \
-  php84-session \
-  php84-simplexml \
-  php84-tokenizer \
-  php84-xml \
-  php84-xmlreader \
-  php84-xmlwriter \
-  php84-zip \
-  php84-pcntl
+    bash \
+    curl \
+    nginx \
+    supervisor \
+    libpng-dev \
+    libzip-dev \
+    libxml2-dev \
+    icu-dev \
+    oniguruma-dev \
+    postgresql-dev \
+    sqlite-dev \
+    freetype-dev \
+    libjpeg-turbo-dev \
+    libwebp-dev \
+    libxpm-dev \
+    zlib-dev \
+    libzip-dev
+
+# Install PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp --with-xpm && \
+    docker-php-ext-install -j$(nproc) \
+        bcmath \
+        ctype \
+        curl \
+        dom \
+        fileinfo \
+        gd \
+        iconv \
+        intl \
+        mbstring \
+        opcache \
+        pdo \
+        pdo_mysql \
+        pdo_pgsql \
+        pdo_sqlite \
+        pcntl \
+        session \
+        simplexml \
+        tokenizer \
+        xml \
+        xmlreader \
+        xmlwriter \
+        zip
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 # Configure nginx
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY default.conf /etc/nginx/conf.d/default.conf
 
 # Configure PHP-FPM
-ENV PHP_INI_DIR="/etc/php84"
-RUN [ -f /usr/bin/php ] || ln -s /usr/bin/php84 /usr/bin/php
-COPY fpm-pool.conf ${PHP_INI_DIR}/php-fpm.d/www.conf
-COPY php.ini ${PHP_INI_DIR}/conf.d/custom.ini
+COPY fpm-pool.conf /usr/local/etc/php-fpm.d/zzz-www.conf
+COPY php.ini /usr/local/etc/php/conf.d/custom.ini
+
+# Set up supervisor
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Set working directory
+WORKDIR /var/www
 
 COPY root /
 
 # Copy composer files first for build caching
 COPY composer.json composer.lock /var/www/
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
+
+# Install dependencies
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction \
+    --ignore-platform-req=ext-bcmath \
+    --ignore-platform-req=ext-ctype \
+    --ignore-platform-req=ext-dom \
+    --ignore-platform-req=ext-pcntl \
+    --ignore-platform-req=ext-simplexml \
+    --ignore-platform-req=ext-fileinfo \
+    --ignore-platform-req=ext-xml
 
 # Copy app
 COPY . /var/www/
+
+# Set proper permissions
+RUN chown -R www-data:www-data /var/www/var
 
 # Verify extensions
 RUN set -e && \
